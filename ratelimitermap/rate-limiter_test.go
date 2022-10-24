@@ -38,14 +38,16 @@ func BenchmarkTestMap_preload(b *testing.B) {
 		m.Allow(ips[i])
 
 	}
-	for i := 0; i < 10000; i++ {
+
+	for j := 0; j < b.N; j++ {
 		wg.Add(1)
-		go func(ip *ipLimited) {
-			for j := 0; j < b.N; j++ {
-				m.Allow(ip)
+		go func() {
+			for i := 0; i < rate_limiter_poc.NumKind*rate_limiter_poc.NumIPs; i++ {
+
+				m.Allow(ips[i])
 			}
 			wg.Done()
-		}(ips[i])
+		}()
 	}
 	wg.Wait()
 	m.Close()
@@ -62,14 +64,14 @@ func BenchmarkTestMap(b *testing.B) {
 		m.AddKind(k.kind, Config)
 		ips = append(ips, k)
 	}
-	for i := 0; i < 10000; i++ {
+	for j := 0; j < b.N; j++ {
 		wg.Add(1)
-		go func(ip *ipLimited) {
-			for j := 0; j < b.N; j++ {
-				m.Allow(ip)
+		go func() {
+			for i := 0; i < rate_limiter_poc.NumKind*rate_limiter_poc.NumIPs; i++ {
+				m.Allow(ips[i])
 			}
 			wg.Done()
-		}(ips[i])
+		}()
 	}
 	wg.Wait()
 	m.Close()

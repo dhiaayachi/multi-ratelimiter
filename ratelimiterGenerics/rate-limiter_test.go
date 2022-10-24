@@ -37,14 +37,14 @@ func BenchmarkTestMap_preload(b *testing.B) {
 		ips = append(ips, k)
 		m.Allow(ips[i])
 	}
-	for i := 0; i < 10000; i++ {
+	for j := 0; j < b.N; j++ {
 		wg.Add(1)
-		go func(ip *ipLimited[string, string]) {
-			for j := 0; j < b.N; j++ {
-				m.Allow(ip)
+		go func() {
+			for i := 0; i < rate_limiter_poc.NumKind*rate_limiter_poc.NumIPs; i++ {
+				m.Allow(ips[i])
 			}
 			wg.Done()
-		}(ips[i])
+		}()
 	}
 	wg.Wait()
 	m.Close()
@@ -55,25 +55,20 @@ func BenchmarkTestMap(b *testing.B) {
 
 	wg := sync.WaitGroup{}
 	ips := make([]*ipLimited[string, string], 0)
-	p := 0
 	for i := 0; i < rate_limiter_poc.NumKind*rate_limiter_poc.NumIPs; i++ {
 		k := NewIPLimited(i%rate_limiter_poc.NumIPs, i%rate_limiter_poc.NumKind)
 		var Config = Config{Rate: 1.0, Burst: 3}
 		m.AddKind(k.kind, Config)
 		ips = append(ips, k)
-		p++
-		if p > 100 {
-			p = 0
-		}
 	}
-	for i := 0; i < 10000; i++ {
+	for j := 0; j < b.N; j++ {
 		wg.Add(1)
-		go func(ip *ipLimited[string, string]) {
-			for j := 0; j < b.N; j++ {
-				m.Allow(ip)
+		go func() {
+			for i := 0; i < rate_limiter_poc.NumKind*rate_limiter_poc.NumIPs; i++ {
+				m.Allow(ips[i])
 			}
 			wg.Done()
-		}(ips[i])
+		}()
 	}
 	wg.Wait()
 	m.Close()
