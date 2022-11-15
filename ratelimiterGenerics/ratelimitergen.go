@@ -2,7 +2,6 @@ package ratelimitergen
 
 import (
 	"context"
-	"fmt"
 	"github.com/armon/go-metrics"
 	"golang.org/x/time/rate"
 	"sync"
@@ -163,7 +162,7 @@ func (m *MultiLimiter[K, T]) metricsRoutine(ctx context.Context) {
 		select {
 		case v := <-m.countCh:
 			if v > max {
-				fmt.Printf("max:%f\n", v)
+				//fmt.Printf("max:%f\n", v)
 				m.metrics.AddSample([]string{"max_clients"}, v)
 			}
 		case <-ctx.Done():
