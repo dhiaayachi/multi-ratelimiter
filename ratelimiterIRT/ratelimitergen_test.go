@@ -21,6 +21,21 @@ func TestNewMultiLimiter(t *testing.T) {
 	require.NotNil(t, m.limiters)
 }
 
+func TestNewMultiLimiterStop(t *testing.T) {
+	c := Config{Rate: 0.1}
+	m := NewMultiLimiter(c)
+	require.NotNil(t, m)
+	require.NotNil(t, m.limiters)
+	require.Nil(t, m.cancel)
+	m.Stop()
+	require.Nil(t, m.cancel)
+	m.Start()
+	require.NotNil(t, m.cancel)
+	m.Stop()
+	m.Stop()
+
+}
+
 func TestRateLimiterUpdate(t *testing.T) {
 	c := Config{Rate: 0.1, CleanupLimit: 1 * time.Millisecond, CleanupTick: 10 * time.Millisecond}
 	m := NewMultiLimiter(c)

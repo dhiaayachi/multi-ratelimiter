@@ -54,7 +54,9 @@ func (m *MultiLimiter) Start() {
 }
 
 func (m *MultiLimiter) Stop() {
-	m.cancel()
+	if m.cancel != nil {
+		m.cancel()
+	}
 }
 
 func (m *MultiLimiter) Allow(e limitedEntity) bool {
