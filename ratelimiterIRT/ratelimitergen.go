@@ -18,8 +18,10 @@ type Limiter struct {
 }
 
 type Config struct {
-	Rate  rate.Limit
-	Burst int
+	Rate         rate.Limit
+	Burst        int
+	CleanupLimit time.Duration
+	CleanupTick  time.Duration
 }
 
 type MultiLimiter struct {
@@ -31,14 +33,27 @@ type MultiLimiter struct {
 func NewMultiLimiter(c Config) *MultiLimiter {
 	limiters := &atomic.Pointer[radix.Tree]{}
 	limiters.Store(radix.New())
+	if c.CleanupLimit == 0 {
+		c.CleanupLimit = 30 * time.Millisecond
+	}
+	if c.CleanupTick == 0 {
+		c.CleanupLimit = 1 * time.Second
+	}
 	m := &MultiLimiter{limiters: limiters, config: &c}
-	ctx, cancelFunc := context.WithCancel(context.Background())
-	m.cancel = cancelFunc
-	go m.cleanupLimited(ctx)
 	return m
 }
 
-func (m *MultiLimiter) Close() {
+func (m *MultiLimiter) Start() {
+	ctx, cancelFunc := context.WithCancel(context.Background())
+	m.cancel = cancelFunc
+	go func() {
+		for {
+			m.cleanupLimited(ctx)
+		}
+	}()
+}
+
+func (m *MultiLimiter) Stop() {
 	m.cancel()
 }
 
@@ -61,27 +76,28 @@ func (m *MultiLimiter) Allow(e limitedEntity) bool {
 // Every minute check the map for visitors that haven't been seen for
 // more than 3 minutes and delete the entries.
 func (m *MultiLimiter) cleanupLimited(ctx context.Context) {
-	for {
-		waiter := time.NewTicker(time.Second)
-		//fmt.Println("clean up!!")
-		select {
-		case <-ctx.Done():
-			return
-		case now := <-waiter.C:
-			limiters := m.limiters.Load()
-			storedLimiters := limiters
-			iter := limiters.Root().Iterator()
-			k, v, ok := iter.Next()
-			for ok {
-				limiter := v.(*Limiter)
-				if limiter.lastAccess.Load() < now.Add(-30*time.Millisecond).Unix() {
-					limiters, _, _ = limiters.Delete(k)
-					//fmt.Println("clean up!!")
-				}
-				k, v, ok = iter.Next()
+	waiter := time.After(m.config.CleanupTick)
+
+	select {
+	case <-ctx.Done():
+		return
+	case now := <-waiter:
+		limiters := m.limiters.Load()
+		storedLimiters := limiters
+		iter := limiters.Root().Iterator()
+		k, v, ok := iter.Next()
+		for ok {
+			limiter := v.(*Limiter)
+			lastAccess := limiter.lastAccess.Load()
+			lastAccessT := time.Unix(lastAccess, 0)
+			diff := now.Sub(lastAccessT)
+			if diff > m.config.CleanupLimit {
+				limiters, _, _ = limiters.Delete(k)
 			}
-			m.limiters.CompareAndSwap(storedLimiters, limiters)
+			k, v, ok = iter.Next()
 		}
-		//
+		m.limiters.CompareAndSwap(storedLimiters, limiters)
 	}
+	//
+
 }

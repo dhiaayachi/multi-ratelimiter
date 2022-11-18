@@ -23,6 +23,7 @@ func NewIPLimited(n int, p int) *ipLimited {
 func BenchmarkTestRateLimiter_preload(b *testing.B) {
 	var Config = Config{Rate: 1.0, Burst: 500}
 	m := NewMultiLimiter(Config)
+	m.Start()
 
 	wg := sync.WaitGroup{}
 	ips := make([]*ipLimited, 0)
@@ -41,7 +42,7 @@ func BenchmarkTestRateLimiter_preload(b *testing.B) {
 		}()
 	}
 	wg.Wait()
-	m.Close()
+	m.Stop()
 }
 
 func BenchmarkTestRateLimiter(b *testing.B) {
@@ -64,5 +65,5 @@ func BenchmarkTestRateLimiter(b *testing.B) {
 		}()
 	}
 	wg.Wait()
-	m.Close()
+	m.Stop()
 }

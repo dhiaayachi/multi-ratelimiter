@@ -75,7 +75,6 @@ func (m *MultiLimiter) Allow(e limitedEntity) bool {
 func (m *MultiLimiter) cleanupLimited(ctx context.Context, k string) {
 	for {
 		waiter := time.After(time.Second)
-		//fmt.Println("clean up!!")
 		select {
 		case <-ctx.Done():
 			return
@@ -91,6 +90,6 @@ func (m *MultiLimiter) cleanupLimited(ctx context.Context, k string) {
 			}
 		}
 		m.mu.RUnlock()
-		//fmt.Println("clean up!!")
+
 	}
 }

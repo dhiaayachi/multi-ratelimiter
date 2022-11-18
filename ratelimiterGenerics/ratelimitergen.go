@@ -82,7 +82,7 @@ func (m *MultiLimiter[T]) cleanupLimited(ctx context.Context) {
 
 	for {
 		waiter := time.After(time.Second)
-		//fmt.Println("clean up!!")
+
 		select {
 		case <-ctx.Done():
 			return
@@ -99,6 +99,6 @@ func (m *MultiLimiter[T]) cleanupLimited(ctx context.Context) {
 			}
 		}
 		m.mu.RUnlock()
-		//fmt.Println("clean up!!")
+
 	}
 }

@@ -62,16 +62,11 @@ func BenchmarkTestRateLimiter(b *testing.B) {
 		wg.Add(1)
 		go func() {
 			for i := 0; i < rate_limiter_poc.NumKind*rate_limiter_poc.NumIPs; i++ {
-				//fmt.Printf("Allow")
 				m.Allow(ips[i])
-				//fmt.Printf("Allow done")
 			}
-			//fmt.Printf("thread done")
 			wg.Done()
 		}()
 	}
-	//fmt.Printf("wait for threads")
 	wg.Wait()
-	//fmt.Printf("wait for threads done")
 	m.Close()
 }
