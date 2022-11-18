@@ -1,6 +1,7 @@
 package ratelimiterIRT
 
 import (
+	"encoding/binary"
 	rate_limiter_poc "github.com/dhiaayachi/rate-limiter-poc"
 	"strconv"
 	"sync"
@@ -66,4 +67,26 @@ func BenchmarkTestRateLimiter(b *testing.B) {
 	}
 	wg.Wait()
 	m.Stop()
+}
+
+func BenchmarkTestRateLimiterOneSame(b *testing.B) {
+	var Config = Config{Rate: 1.0, Burst: 500}
+	m := NewMultiLimiter(Config)
+
+	for j := 0; j < b.N; j++ {
+		m.Allow(ipLimited{key: []byte("testssss")})
+	}
+
+}
+
+func BenchmarkTestRateLimiterOneDiff(b *testing.B) {
+	var Config = Config{Rate: 1.0, Burst: 500}
+	m := NewMultiLimiter(Config)
+
+	for j := 0; j < b.N; j++ {
+		bs := make([]byte, 4)
+		binary.LittleEndian.PutUint32(bs, uint32(j))
+		m.Allow(ipLimited{key: bs})
+	}
+
 }
