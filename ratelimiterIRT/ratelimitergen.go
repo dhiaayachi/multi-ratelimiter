@@ -86,15 +86,23 @@ func (m *MultiLimiter) cleanupLimited(ctx context.Context) {
 		storedLimiters := limiters
 		iter := limiters.Root().Iterator()
 		k, v, ok := iter.Next()
+		var txn *radix.Txn
 		for ok {
 			limiter := v.(*Limiter)
 			lastAccess := limiter.lastAccess.Load()
 			lastAccessT := time.Unix(lastAccess, 0)
 			diff := now.Sub(lastAccessT)
+
 			if diff > m.config.CleanupLimit {
-				limiters, _, _ = limiters.Delete(k)
+				if txn == nil {
+					txn = limiters.Txn()
+				}
+				txn.Delete(k)
 			}
 			k, v, ok = iter.Next()
+		}
+		if txn != nil {
+			limiters = txn.Commit()
 		}
 		m.limiters.CompareAndSwap(storedLimiters, limiters)
 	}
